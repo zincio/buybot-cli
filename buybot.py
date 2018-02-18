@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from __future__ import print_function
 
 import os
@@ -10,7 +11,7 @@ except ImportError:
 try:
     from urllib.parse import urljoin
 except ImportError:
-    from urllib import urljoin
+    from urlparse import urljoin
 
 import click
 import requests
@@ -72,23 +73,22 @@ def whoami():
 
 @click.command()
 def login():
-    sess = requests.Session()
-
     # Start a login request
-    resp = sess.post(urljoin(BUYBOT_URL, '/cli/auth'), params={'hostname': socket.gethostname()}, timeout=31)
+    resp = requests.post(urljoin(BUYBOT_URL, '/cli/auth'), params={'hostname': socket.gethostname()}, timeout=31)
     resp.raise_for_status()
 
     browser_url = resp.json()['browser_url']
     poll_url = resp.json()['poll_url']
 
     click.echo("Please open the following URL in your browser:\n    %s\n" % browser_url)
+    click.echo("Authorization pending...", nl=False)
 
     while True:
-        resp = sess.get(poll_url, timeout=31)
+        resp = requests.get(poll_url, timeout=31)
 
         if resp.status_code == 404:
             # rejected :(
-            click.echo("Authorization rejected :(")
+            click.echo("\nAuthorization rejected :(")
             return
 
         js = resp.json()
@@ -96,14 +96,13 @@ def login():
             CFG['auth.user_id'] = js['user_id']
             CFG['auth.token'] = js['token']
             write_config(CFG)
-            click.echo("Login complete!")
+            click.echo("\nLogin complete!")
             return
 
         elif js.get('pending'):
-            click.echo("Authorization pending...")
-
+            click.echo(".", nl=False)
         else:
-            click.echo("Unknown error. Trying again...")
+            click.echo("\nUnknown error. Trying again...")
 
         time.sleep(5)
 
