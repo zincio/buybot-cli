@@ -108,7 +108,7 @@ def login():
 
         time.sleep(5)
 
-def ls(all=False, ids=None):
+def ls_products(all=False, ids=None):
     resp = api_call('/v0/products')
     resp.raise_for_status()
     resp = resp.json()
@@ -128,8 +128,8 @@ def ls(all=False, ids=None):
 
 @products.command(name="ls")
 @click.option('--all', '-a', is_flag=True)
-def _ls(all=False):
-    ls(all=all)
+def _ls_products(all=False):
+    ls_products(all=all)
 
 @products.command()
 @click.argument('ids', nargs=-1)
@@ -142,9 +142,8 @@ def approve(ids):
         click.echo(resp.json()['message'], err=True)
         return
     resp.raise_for_status()
-    ls(ids=ids)
+    ls_products(ids=ids)
     #click.echo(json.dumps(resp, indent=2))
-
 
 @products.command()
 @click.argument('ids', nargs=-1)
@@ -157,7 +156,18 @@ def reject(ids):
         click.echo(resp.json()['message'], err=True)
         return
     resp.raise_for_status()
-    ls(ids=ids)
+    ls_products(ids=ids)
+
+
+@products.command(name="add")
+@click.argument('url')
+def add_product(url):
+    #XXX: acutally add_product
+    ls_products()
+
+@click.group()
+def orders():
+    pass
 
 #@products.command()
 #@click.argument('id')
@@ -165,8 +175,10 @@ def reject(ids):
 #    pass
 
 cli.add_command(products)
+cli.add_command(orders)
 cli.add_command(login)
 cli.add_command(whoami)
+cli.add_command(reject)
 
 if __name__ == '__main__':
     CFG = read_config()
