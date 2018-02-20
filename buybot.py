@@ -4,6 +4,7 @@ from __future__ import print_function
 import os
 import socket
 import time
+import json
 try:
     import configparser as ConfigParser
 except ImportError:
@@ -15,6 +16,7 @@ except ImportError:
 
 import click
 import requests
+from tabulate import tabulate
 
 APP_NAME = 'buybot-cli'
 BUYBOT_URL = os.getenv('BUYBOT_URL', 'https://buybot.zinc.io/')
@@ -62,7 +64,7 @@ def cli():
     pass
 
 @click.group()
-def orders():
+def products():
     pass
 
 @click.command()
@@ -106,16 +108,63 @@ def login():
 
         time.sleep(5)
 
-@orders.command()  # buybot orders ls
-def ls():
-    pass
+def ls(all=False, ids=None):
+    resp = api_call('/v0/products')
+    resp.raise_for_status()
+    resp = resp.json()
+    if ids:
+        rows = [p for p in resp if p['id'] in ids]
+    else:
+        rows = [p for p in resp if all or p['user']['id'] == CFG['auth.user_id']]
+    rows = [[
+        p['id'],
+        p['state'],
+        p['user'].get('email') or p['user']['id'],
+        "${0:.2f}".format(p['price']/100),
+        p.get('details',{}).get('value',{}).get('title','None')[:40],
+        'https://www.amazon.com/-/dp/{}'.format(p['product_id']),
+    ] for p in rows]
+    click.echo(tabulate(rows, headers=['ID', 'APPROVAL', 'USER', 'PRICE', 'TITLE', 'URL']))
 
-@orders.command()
-@click.argument('id')
-def retry(order_id):
-    pass
+@products.command(name="ls")
+@click.option('--all', '-a', is_flag=True)
+def _ls(all=False):
+    ls(all=all)
 
-cli.add_command(orders)
+@products.command()
+@click.argument('ids', nargs=-1)
+def approve(ids):
+    resp = api_call('/v0/products/approve', method="POST", json={
+        "ids":ids,
+        "attempt":False,
+    })
+    if resp.status_code == 400:
+        click.echo(resp.json()['message'], err=True)
+        return
+    resp.raise_for_status()
+    ls(ids=ids)
+    #click.echo(json.dumps(resp, indent=2))
+
+
+@products.command()
+@click.argument('ids', nargs=-1)
+def reject(ids):
+    resp = api_call('/v0/products/reject', method="POST", json={
+        "ids":ids,
+        "attempt":False,
+    })
+    if resp.status_code == 400:
+        click.echo(resp.json()['message'], err=True)
+        return
+    resp.raise_for_status()
+    ls(ids=ids)
+
+#@products.command()
+#@click.argument('id')
+#def retry(order_id):
+#    pass
+
+cli.add_command(products)
 cli.add_command(login)
 cli.add_command(whoami)
 
