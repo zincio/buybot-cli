@@ -121,7 +121,7 @@ def ls_products(all=False, ids=None):
         p['state'],
         p['user'].get('email') or p['user']['id'],
         "${0:.2f}".format(p['price']/100),
-        p.get('details',{}).get('value',{}).get('title','None')[:40],
+        (p.get('details',{}).get('value',{}).get('title') or 'None')[:40],
         'https://www.amazon.com/-/dp/{}'.format(p['product_id']),
     ] for p in rows]
     click.echo(tabulate(rows, headers=['ID', 'APPROVAL', 'USER', 'PRICE', 'TITLE', 'URL']))
@@ -169,10 +169,49 @@ def add_product(url):
 def orders():
     pass
 
-#@products.command()
-#@click.argument('id')
-#def retry(order_id):
-#    pass
+def ls_orders(ids=None):
+    resp = api_call('/v0/orders')
+    resp.raise_for_status()
+    orders = resp.json()
+    if ids:
+        orders = [p for p in orders if p['id'] in ids]
+    rows = []
+    for o in orders:
+        last_attempt =  o['attempts'] and max(o['attempts'], key=lambda a: a['created_time']) or {'state':'ready', 'price_components':None}
+        price = (last_attempt['price_components'] or {}).get('total')
+        if price is not None:
+            price = "${0:.2f}".format(price/100)
+        rows.append([
+            o['id'],
+            last_attempt.get('state'),
+            o['retailer'],
+            price,
+            (last_attempt.get('tracking_carrier') or 'None').replace(" ", "_"),
+            last_attempt.get('tracking_number'),
+            'https://buybot.zinc.io/v0/orders/{}'.format(o['id']),
+        ])
+    click.echo(tabulate(rows, headers=['ID', 'STATE', 'RETAILER', 'PRICE', 'CARRIER', 'TRACKING_#', 'PRODUCTS_URL']))
+
+@orders.command(name="ls")
+def _ls_orders():
+    ls_orders()
+
+@orders.command(name="attempt")
+@click.argument('retailer', type=click.Choice(['amazon', 'amazon_fresh']))
+@click.option('--order-id')
+def attempt_order(retailer, order_id=None):
+    url = '/v0/orders/attempt'
+    if order_id:
+        url = '/v0/orders/attempt/{}'.format(order_id)
+    resp = api_call(url, method="POST", json={
+        "retailer":retailer,
+    })
+    if resp.status_code == 400:
+        click.echo(resp.json()['message'], err=True)
+        return
+    resp.raise_for_status()
+    resp = resp.json()
+    ls_orders(ids=[resp['id']])
 
 cli.add_command(products)
 cli.add_command(orders)
