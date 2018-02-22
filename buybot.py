@@ -202,7 +202,7 @@ def _ls_orders(ids=None):
 @click.option('--order-id')
 @click.option('--retailer', type=click.Choice(['amazon', 'amazon_fresh']))
 def attempt_order(retailer=None, order_id=None):
-    if not retailer or order_id:
+    if not retailer and not order_id:
         click.echo("You must specify either a retailer or an order id", err=True)
         return
     url = '/v0/orders/attempt'
