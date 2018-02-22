@@ -190,11 +190,12 @@ def ls_orders(ids=None):
             last_attempt.get('tracking_number'),
             'https://buybot.zinc.io/v0/orders/{}'.format(o['id']),
         ])
-    click.echo(tabulate(rows, headers=['ID', 'STATE', 'RETAILER', 'PRICE', 'CARRIER', 'TRACKING_#', 'PRODUCTS_URL']))
+    click.echo(tabulate(rows, headers=['ID', 'STATE', 'RETAILER', 'PRICE', 'CARRIER', 'TRACKING_#', 'DETAILS_URL']))
 
 @orders.command(name="ls")
-def _ls_orders():
-    ls_orders()
+@click.argument('ids', nargs=-1)
+def _ls_orders(ids=None):
+    ls_orders(ids=ids)
 
 @orders.command(name="attempt")
 @click.argument('retailer', type=click.Choice(['amazon', 'amazon_fresh']))
