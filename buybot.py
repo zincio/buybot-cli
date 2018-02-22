@@ -184,13 +184,14 @@ def ls_orders(ids=None):
         rows.append([
             o['id'],
             last_attempt.get('state'),
+            last_attempt.get('failure_reason') or 'None',
             o['retailer'],
-            price,
+            price or 'None',
             (last_attempt.get('tracking_carrier') or 'None').replace(" ", "_"),
-            last_attempt.get('tracking_number'),
+            last_attempt.get('tracking_number') or 'None',
             'https://buybot.zinc.io/v0/orders/{}'.format(o['id']),
         ])
-    click.echo(tabulate(rows, headers=['ID', 'STATE', 'RETAILER', 'PRICE', 'CARRIER', 'TRACKING_#', 'DETAILS_URL']))
+    click.echo(tabulate(rows, headers=['ID', 'STATE', 'REASON', 'RETAILER', 'PRICE', 'CARRIER', 'TRACKING_#', 'DETAILS_URL']))
 
 @orders.command(name="ls")
 @click.argument('ids', nargs=-1)
@@ -198,12 +199,15 @@ def _ls_orders(ids=None):
     ls_orders(ids=ids)
 
 @orders.command(name="attempt")
-@click.argument('retailer', type=click.Choice(['amazon', 'amazon_fresh']))
 @click.option('--order-id')
-def attempt_order(retailer, order_id=None):
+@click.option('--retailer', type=click.Choice(['amazon', 'amazon_fresh']))
+def attempt_order(retailer=None, order_id=None):
+    if not retailer or order_id:
+        click.echo("You must specify either a retailer or an order id", err=True)
+        return
     url = '/v0/orders/attempt'
     if order_id:
-        url = '/v0/orders/attempt/{}'.format(order_id)
+        url = '/v0/orders/{}/attempt'.format(order_id)
     resp = api_call(url, method="POST", json={
         "retailer":retailer,
     })
