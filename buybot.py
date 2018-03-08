@@ -120,7 +120,7 @@ def ls_products(all=False, ids=None):
         p['id'],
         p['state'],
         p['user'].get('email') or p['user']['id'],
-        "${0:.2f}".format(p['price']/100),
+        p.get('price') is not None and "${0:.2f}".format(p['price']/100),
         (p.get('details',{}).get('value',{}).get('title') or 'None')[:40],
         'https://www.amazon.com/-/dp/{}'.format(p['product_id']),
     ] for p in rows]
