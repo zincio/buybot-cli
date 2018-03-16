@@ -121,7 +121,7 @@ def ls_products(all=False, ids=None):
         p['state'],
         p['user'].get('email') or p['user']['id'],
         p.get('price') is not None and "${0:.2f}".format(p['price']/100),
-        (p.get('details',{}).get('value',{}).get('title') or 'None')[:40],
+        (((p.get('details') or {}).get('value') or {}).get('title') or 'None')[:40],
         'https://www.amazon.com/-/dp/{}'.format(p['product_id']),
     ] for p in rows]
     click.echo(tabulate(rows, headers=['ID', 'APPROVAL', 'USER', 'PRICE', 'TITLE', 'URL']))
