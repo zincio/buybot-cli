@@ -177,7 +177,7 @@ def ls_orders(ids=None):
         orders = [p for p in orders if p['id'] in ids]
     rows = []
     for o in orders:
-        last_attempt =  o['attempts'] and max(o['attempts'], key=lambda a: a['created_time']) or {'state':'ready', 'price_components':None}
+        last_attempt = o
         price = (last_attempt['price_components'] or {}).get('total')
         if price is not None:
             price = "${0:.2f}".format(price/100)
